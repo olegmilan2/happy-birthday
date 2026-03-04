@@ -1,4 +1,4 @@
-const { loadBirthdays } = require("../../storage");
+const { loadBirthdays, removeBirthday } = require("../../storage");
 const { createAndStoreBirthday } = require("../../birthday-service");
 
 async function getBirthdays(_req, res) {
@@ -32,7 +32,23 @@ async function createBirthday(req, res) {
   }
 }
 
+async function deleteBirthday(req, res) {
+  const { id } = req.params || {};
+  try {
+    const removed = await removeBirthday(id);
+    if (!removed) {
+      res.status(404).json({ error: "Запись не найдена." });
+      return;
+    }
+    res.json({ ok: true, id: String(id) });
+  } catch (error) {
+    console.error("DELETE /api/birthdays/:id failed:", error.message);
+    res.status(500).json({ error: "Не удалось удалить запись." });
+  }
+}
+
 module.exports = {
   getBirthdays,
   createBirthday,
+  deleteBirthday,
 };

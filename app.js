@@ -56,15 +56,32 @@ function renderBirthdays(items) {
     return;
   }
   items.forEach((item) => {
-    const li = document.createElement("li");
-    li.textContent = `${item.name} — ${formatDateForUi(item.date)}`;
-    listNode.appendChild(li);
+    listNode.appendChild(createBirthdayListItem(item));
   });
 }
 
-function renderBirthdayItem(item, append = false) {
+function createBirthdayListItem(item) {
   const li = document.createElement("li");
-  li.textContent = `${item.name} — ${formatDateForUi(item.date)}`;
+  li.className = "birthday-item";
+
+  const text = document.createElement("span");
+  text.textContent = `${item.name} — ${formatDateForUi(item.date)}`;
+  li.appendChild(text);
+
+  if (item.id) {
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "delete-btn";
+    removeButton.dataset.id = String(item.id);
+    removeButton.textContent = "Удалить";
+    li.appendChild(removeButton);
+  }
+
+  return li;
+}
+
+function renderBirthdayItem(item, append = false) {
+  const li = createBirthdayListItem(item);
   if (append) {
     listNode.appendChild(li);
     return;
@@ -91,6 +108,29 @@ function parseUnknownYearDate(value) {
   return `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+async function deleteBirthday(id) {
+  if (!id) {
+    throw new Error("Missing birthday id");
+  }
+
+  if (USE_FIREBASE_DIRECT) {
+    const response = await fetch(firebaseBirthdaysUrl(id), {
+      method: "DELETE",
+    });
+    if (!response.ok) {
+      throw new Error(`Firebase delete error: ${response.status}`);
+    }
+    return;
+  }
+
+  const response = await fetch(apiUrl(`/api/birthdays/${encodeURIComponent(id)}`), {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error(`Backend delete error: ${response.status}`);
+  }
+}
+
 async function loadBirthdays() {
   if (USE_FIREBASE_DIRECT) {
     const response = await fetch(firebaseBirthdaysUrl());
@@ -98,7 +138,12 @@ async function loadBirthdays() {
       throw new Error(`Firebase error: ${response.status}`);
     }
     const raw = await response.json();
-    const items = raw ? Object.values(raw) : [];
+    const items = raw
+      ? Object.entries(raw).map(([id, value]) => ({
+          id: value && value.id ? value.id : id,
+          ...value,
+        }))
+      : [];
     items.sort((a, b) =>
       String(a.createdAt || "").localeCompare(String(b.createdAt || ""))
     );
@@ -213,6 +258,32 @@ form.addEventListener("submit", async (event) => {
   } finally {
     addBtn.disabled = false;
     addBtn.textContent = originalText;
+  }
+});
+
+listNode.addEventListener("click", async (event) => {
+  const button = event.target.closest(".delete-btn");
+  if (!button) {
+    return;
+  }
+  const id = button.dataset.id;
+  if (!id) {
+    return;
+  }
+
+  button.disabled = true;
+  const originalText = button.textContent;
+  button.textContent = "Удаляю...";
+  setStatus("");
+
+  try {
+    await deleteBirthday(id);
+    await loadBirthdays();
+    setStatus("Запись удалена.");
+  } catch (error) {
+    setStatus(`Ошибка удаления: ${error.message}`, true);
+    button.disabled = false;
+    button.textContent = originalText;
   }
 });
 

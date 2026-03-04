@@ -90,7 +90,12 @@ async function loadBirthdays() {
 
   const snapshot = await db.ref("birthdays").once("value");
   const value = snapshot.val();
-  const items = value ? Object.values(value) : [];
+  const items = value
+    ? Object.entries(value).map(([id, item]) => ({
+        id: item && item.id ? item.id : id,
+        ...item,
+      }))
+    : [];
   return items.sort((a, b) =>
     String(a.createdAt || "").localeCompare(String(b.createdAt || ""))
   );
@@ -121,8 +126,35 @@ async function addBirthday(item) {
   await db.ref(`birthdays/${String(item.id)}`).set(item);
 }
 
+async function removeBirthday(id) {
+  const normalizedId = String(id || "").trim();
+  if (!normalizedId) {
+    return false;
+  }
+
+  const db = getRealtimeDb();
+  if (!db) {
+    const list = loadBirthdaysFromFile();
+    const next = list.filter((item) => String(item.id) !== normalizedId);
+    if (next.length === list.length) {
+      return false;
+    }
+    saveBirthdaysToFile(next);
+    return true;
+  }
+
+  const ref = db.ref(`birthdays/${normalizedId}`);
+  const snapshot = await ref.once("value");
+  if (!snapshot.exists()) {
+    return false;
+  }
+  await ref.remove();
+  return true;
+}
+
 module.exports = {
   loadBirthdays,
   saveBirthdays,
   addBirthday,
+  removeBirthday,
 };
