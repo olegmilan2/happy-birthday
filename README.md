@@ -87,6 +87,18 @@ window.APP_CONFIG = {
 После этого новые записи сохраняются в общей RTDB-ветке `birthdays`.
 Фронт автоматически обновляет список каждые 15 секунд, поэтому изменения видны всем.
 
+## Telegram без запущенного компьютера
+
+В репозитории есть workflow `.github/workflows/telegram-reminders.yml`.
+Он каждый день в `09:00` по Москве (cron `0 6 * * *` UTC) читает даты из Firebase RTDB и отправляет напоминания в Telegram.
+
+Нужно один раз добавить GitHub Secrets (`Settings -> Secrets and variables -> Actions`):
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+- `FIREBASE_DATABASE_URL`
+
+После этого уведомления будут приходить без запуска `npm start` на твоём компьютере.
+
 CLI-режим (опционально), добавить день рождения:
 
 ```bash
