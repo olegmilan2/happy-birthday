@@ -3,6 +3,7 @@ const nameInput = document.getElementById("nameInput");
 const dateInput = document.getElementById("dateInput");
 const addBtn = document.getElementById("addBtn");
 const statusNode = document.getElementById("status");
+const statusIconNode = document.getElementById("statusIcon");
 const listNode = document.getElementById("birthdayList");
 const unknownYearCheckbox = document.getElementById("unknownYear");
 const monthDayInput = document.getElementById("monthDayInput");
@@ -31,9 +32,19 @@ function firebaseBirthdaysUrl(id = "") {
     : `${FIREBASE_DB_URL}/birthdays.json`;
 }
 
-function setStatus(message, isError = false) {
+function setStatus(message, isError = false, showSuccessIcon = false) {
   statusNode.textContent = message;
   statusNode.classList.toggle("error", isError);
+  if (!statusIconNode) {
+    return;
+  }
+  if (showSuccessIcon && !isError) {
+    statusIconNode.classList.remove("show");
+    void statusIconNode.offsetWidth;
+    statusIconNode.classList.add("show");
+    return;
+  }
+  statusIconNode.classList.remove("show");
 }
 
 function formatDateForUi(value) {
@@ -248,7 +259,11 @@ form.addEventListener("submit", async (event) => {
       }
     }
 
-    setStatus(payload.message || `Добавлено: ${payload.name} (${payload.date})`);
+    setStatus(
+      payload.message || `Добавлено: ${payload.name} (${payload.date})`,
+      false,
+      true
+    );
     form.reset();
     dateInput.style.display = "block";
     monthDayInput.style.display = "none";

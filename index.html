@@ -78,7 +78,7 @@
       }
 
       .status {
-        margin: 0 0 14px;
+        margin: 0;
         min-height: 22px;
         color: #2f6b24;
         font-weight: 600;
@@ -86,6 +86,55 @@
 
       .status.error {
         color: #9f2a2a;
+      }
+
+      .status-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 14px;
+        min-height: 24px;
+      }
+
+      .status-icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #2ecf8f, #1da86d);
+        position: relative;
+        opacity: 0;
+        transform: scale(0.85);
+        transition: opacity 0.22s ease, transform 0.22s ease;
+      }
+
+      .status-icon::after {
+        content: "";
+        position: absolute;
+        left: 7px;
+        top: 4px;
+        width: 5px;
+        height: 9px;
+        border-right: 2px solid #fff;
+        border-bottom: 2px solid #fff;
+        transform: rotate(40deg);
+      }
+
+      .status-icon.show {
+        opacity: 1;
+        transform: scale(1);
+        animation: pop-in 0.3s ease;
+      }
+
+      @keyframes pop-in {
+        0% {
+          transform: scale(0.72);
+        }
+        70% {
+          transform: scale(1.08);
+        }
+        100% {
+          transform: scale(1);
+        }
       }
 
       ul {
@@ -144,7 +193,10 @@
         <button id="addBtn" type="submit">Добавить</button>
       </form>
 
-      <div id="status" class="status"></div>
+      <div class="status-wrap">
+        <span id="statusIcon" class="status-icon" aria-hidden="true"></span>
+        <div id="status" class="status"></div>
+      </div>
       <div class="note">Список сохраненных дней рождения:</div>
       <ul id="birthdayList"></ul>
     </main>
