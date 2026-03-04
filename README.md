@@ -1,5 +1,7 @@
 # Happy Birthday Manager
 
+Frontend (GitHub Pages): https://olegmilan2.github.io/happy-birthday/
+
 Умный менеджер дней рождения:
 - вы добавляете имя и дату один раз;
 - если год неизвестен, можно добавить только день и месяц (`DD.MM`, например `02.04`);

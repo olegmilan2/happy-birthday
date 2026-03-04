@@ -2,6 +2,7 @@
   "name": "happy birthday",
   "version": "1.0.0",
   "description": "Smart birthday manager with Google Calendar + Telegram reminders",
+  "homepage": "https://olegmilan2.github.io/happy-birthday/",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
