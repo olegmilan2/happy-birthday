@@ -164,8 +164,15 @@ form.addEventListener("submit", async (event) => {
 });
 
 loadBirthdays().catch(() => {
-  if (window.location.hostname.endsWith("github.io")) {
+  if (window.location.hostname.endsWith("github.io") && !API_BASE) {
     setStatus("Backend не настроен. Укажите APP_CONFIG.API_BASE в config.js.", true);
+    return;
+  }
+  if (window.location.hostname.endsWith("github.io")) {
+    setStatus(
+      "Backend недоступен по APP_CONFIG.API_BASE. Проверь, что сервер запущен и URL отвечает на /api/birthdays.",
+      true
+    );
     return;
   }
   setStatus("Сервер недоступен. Запустите `npm start`.", true);
