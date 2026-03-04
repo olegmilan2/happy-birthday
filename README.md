@@ -90,7 +90,7 @@ window.APP_CONFIG = {
 ## Telegram без запущенного компьютера
 
 В репозитории есть workflow `.github/workflows/telegram-reminders.yml`.
-Он каждый день в `09:00` по Москве (cron `0 6 * * *` UTC) читает даты из Firebase RTDB и отправляет напоминания в Telegram.
+Он проверяется каждый час, но отправляет уведомления только в `12:00` по `Europe/Kyiv`, читая даты из Firebase RTDB.
 
 Нужно один раз добавить GitHub Secrets (`Settings -> Secrets and variables -> Actions`):
 - `TELEGRAM_BOT_TOKEN`

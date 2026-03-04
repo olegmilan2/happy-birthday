@@ -2,18 +2,20 @@ name: Telegram Birthday Reminders
 
 on:
   schedule:
-    - cron: "0 6 * * *"
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 jobs:
   notify:
     runs-on: ubuntu-latest
     env:
-      TZ: Europe/Moscow
+      TZ: Europe/Kyiv
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
       FORCE_TEST: ${{ github.event_name == 'workflow_dispatch' }}
+      TARGET_TIMEZONE: Europe/Kyiv
+      TARGET_HOUR: "12"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

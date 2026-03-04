@@ -8,6 +8,15 @@ function requireEnv(name) {
   return value;
 }
 
+function getHourInTimeZone(date, timeZone) {
+  const formatted = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    hour12: false,
+  }).format(date);
+  return Number(formatted);
+}
+
 async function fetchBirthdays(databaseUrl) {
   const url = `${databaseUrl.replace(/\/+$/, "")}/birthdays.json`;
   const response = await fetch(url);
@@ -40,6 +49,18 @@ async function main() {
   const telegramChatId = requireEnv("TELEGRAM_CHAT_ID");
   const firebaseDatabaseUrl = requireEnv("FIREBASE_DATABASE_URL");
   const forceTest = String(process.env.FORCE_TEST || "").toLowerCase() === "true";
+  const targetTimeZone = process.env.TARGET_TIMEZONE || "Europe/Kyiv";
+  const targetHour = Number(process.env.TARGET_HOUR || 12);
+
+  if (!forceTest) {
+    const nowHour = getHourInTimeZone(new Date(), targetTimeZone);
+    if (nowHour !== targetHour) {
+      console.log(
+        `Skip run: now hour in ${targetTimeZone} is ${nowHour}, target is ${targetHour}.`
+      );
+      return;
+    }
+  }
 
   const now = new Date();
   const tomorrow = addDays(now, 1);
