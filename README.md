@@ -1,6 +1,7 @@
 # Happy Birthday Manager
 
 Frontend (GitHub Pages): https://olegmilan2.github.io/happy-birthday/
+Быстрая шпаргалка: `SETUP.md`
 
 Умный менеджер дней рождения:
 - вы добавляете имя и дату один раз;
