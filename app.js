@@ -47,6 +47,16 @@ function renderBirthdays(items) {
   });
 }
 
+function renderBirthdayItem(item, append = false) {
+  const li = document.createElement("li");
+  li.textContent = `${item.name} — ${formatDateForUi(item.date)}`;
+  if (append) {
+    listNode.appendChild(li);
+    return;
+  }
+  listNode.prepend(li);
+}
+
 function parseUnknownYearDate(value) {
   const match = /^(\d{2})\.(\d{2})$/.exec(value.trim());
   if (!match) {
@@ -144,7 +154,7 @@ form.addEventListener("submit", async (event) => {
     form.reset();
     dateInput.style.display = "block";
     monthDayInput.style.display = "none";
-    await loadBirthdays();
+    renderBirthdayItem(payload, true);
   } catch (error) {
     setStatus(`Ошибка сети: ${error.message}`, true);
   } finally {
@@ -160,3 +170,7 @@ loadBirthdays().catch(() => {
   }
   setStatus("Сервер недоступен. Запустите `npm start`.", true);
 });
+
+setInterval(() => {
+  loadBirthdays().catch(() => {});
+}, 15000);

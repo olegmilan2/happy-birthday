@@ -14,4 +14,9 @@ module.exports = {
   storageFilePath:
     process.env.STORAGE_FILE_PATH ||
     path.resolve(__dirname, "..", "data", "birthdays.json"),
+  firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
+  firebaseClientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  firebasePrivateKey: process.env.FIREBASE_PRIVATE_KEY,
+  firebaseDatabaseUrl: process.env.FIREBASE_DATABASE_URL,
+  firebaseServiceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH,
 };

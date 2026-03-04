@@ -17,7 +17,7 @@ async function main() {
   }
 
   if (command === "list") {
-    handleList();
+    await handleList();
     return;
   }
 

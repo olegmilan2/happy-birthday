@@ -1,8 +1,14 @@
 const { loadBirthdays } = require("../../storage");
 const { createAndStoreBirthday } = require("../../birthday-service");
 
-function getBirthdays(_req, res) {
-  res.json(loadBirthdays());
+async function getBirthdays(_req, res) {
+  try {
+    const items = await loadBirthdays();
+    res.json(items);
+  } catch (error) {
+    console.error("GET /api/birthdays failed:", error.message);
+    res.status(500).json({ error: "Не удалось загрузить дни рождения." });
+  }
 }
 
 async function createBirthday(req, res) {

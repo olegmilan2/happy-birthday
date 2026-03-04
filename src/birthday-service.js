@@ -1,6 +1,15 @@
 const { addBirthday } = require("./storage");
 const { createBirthdayEvent, isCalendarConfigured } = require("./calendar");
 
+function withTimeout(promise, timeoutMs) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Calendar timeout")), timeoutMs);
+    }),
+  ]);
+}
+
 function isValidDateParts(year, month, day) {
   if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
     return false;
@@ -74,11 +83,15 @@ async function createAndStoreBirthday(name, date) {
   let calendarEnabled = false;
   if (isCalendarConfigured()) {
     try {
-      event = await createBirthdayEvent(name, normalizedDate);
+      event = await withTimeout(
+        createBirthdayEvent(name, normalizedDate),
+        4000
+      );
       calendarEnabled = true;
     } catch (error) {
       if (
-        String(error.message).includes("Google Calendar config is incomplete")
+        String(error.message).includes("Google Calendar config is incomplete") ||
+        String(error.message).includes("Calendar timeout")
       ) {
         calendarEnabled = false;
       } else {
@@ -96,7 +109,7 @@ async function createAndStoreBirthday(name, date) {
     createdAt: new Date().toISOString(),
   };
 
-  addBirthday(entry);
+  await addBirthday(entry);
   return { entry, event, calendarEnabled };
 }
 

@@ -41,8 +41,8 @@ async function handleAdd(name, date) {
   );
 }
 
-function handleList() {
-  const items = loadBirthdays();
+async function handleList() {
+  const items = await loadBirthdays();
   if (items.length === 0) {
     console.log("Список пуст.");
     return;

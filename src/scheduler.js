@@ -5,7 +5,7 @@ const { addDays, matchesBirthdayOnDate, toHumanDate } = require("./date-utils");
 const { sendTelegramMessage } = require("./telegram");
 
 async function checkAndNotify(referenceDate = new Date()) {
-  const birthdays = loadBirthdays();
+  const birthdays = await loadBirthdays();
   const tomorrow = addDays(referenceDate, 1);
 
   for (const person of birthdays) {

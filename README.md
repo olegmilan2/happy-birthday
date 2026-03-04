@@ -71,6 +71,22 @@ window.APP_CONFIG = {
 
 После этого кнопка "Добавить" на GitHub Pages будет отправлять запросы в ваш backend.
 
+## Общая БД для всех (Firebase Realtime Database)
+
+По умолчанию данные сохраняются в локальный `data/birthdays.json`.
+Чтобы все пользователи видели одни и те же данные, подключите Firebase RTDB:
+
+1. В Firebase Console создайте проект и включите `Realtime Database`.
+2. `Project settings -> Service accounts -> Generate new private key`.
+3. Заполните в `.env`:
+   - `FIREBASE_DATABASE_URL` (например `https://<project>-default-rtdb.firebaseio.com/`)
+   - `FIREBASE_SERVICE_ACCOUNT_PATH=./serviceAccountKey.json`
+4. Скопируйте `serviceAccountKey.json` в корень проекта (файл уже в `.gitignore`).
+5. Перезапустите сервер (`npm start`).
+
+После этого новые записи сохраняются в общей RTDB-ветке `birthdays`.
+Фронт автоматически обновляет список каждые 15 секунд, поэтому изменения видны всем.
+
 CLI-режим (опционально), добавить день рождения:
 
 ```bash
@@ -102,3 +118,8 @@ npm run worker
 - `GOOGLE_CLIENT_ID` - OAuth client id.
 - `GOOGLE_CLIENT_SECRET` - OAuth client secret.
 - `GOOGLE_REFRESH_TOKEN` - refresh token пользователя.
+- `FIREBASE_PROJECT_ID` - id Firebase-проекта для общей БД.
+- `FIREBASE_CLIENT_EMAIL` - client_email из service account JSON.
+- `FIREBASE_PRIVATE_KEY` - private_key из service account JSON (с `\n`).
+- `FIREBASE_DATABASE_URL` - URL Realtime Database.
+- `FIREBASE_SERVICE_ACCOUNT_PATH` - путь к service account JSON (предпочтительный способ).
