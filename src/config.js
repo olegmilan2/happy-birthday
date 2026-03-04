@@ -3,7 +3,7 @@ require("dotenv").config();
 
 module.exports = {
   port: Number(process.env.PORT || 3000),
-  timezone: process.env.TIMEZONE || "Europe/Moscow",
+  timezone: process.env.TIMEZONE || "Europe/Kyiv",
   notifyCron: process.env.NOTIFY_CRON || "0 9 * * *",
   telegramToken: process.env.TELEGRAM_BOT_TOKEN,
   telegramChatId: process.env.TELEGRAM_CHAT_ID,

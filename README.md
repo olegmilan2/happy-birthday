@@ -123,7 +123,7 @@ npm run worker
 ## Переменные окружения
 
 - `PORT` - порт web-сервера (по умолчанию `3000`).
-- `TIMEZONE` - временная зона (по умолчанию `Europe/Moscow`).
+- `TIMEZONE` - временная зона (по умолчанию `Europe/Kyiv`).
 - `NOTIFY_CRON` - расписание ежедневной проверки (по умолчанию `0 9 * * *`).
 - `TELEGRAM_BOT_TOKEN` - токен Telegram-бота.
 - `TELEGRAM_CHAT_ID` - ваш личный chat_id для уведомлений.
