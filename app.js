@@ -6,14 +6,29 @@ const statusNode = document.getElementById("status");
 const listNode = document.getElementById("birthdayList");
 const unknownYearCheckbox = document.getElementById("unknownYear");
 const monthDayInput = document.getElementById("monthDayInput");
+
 const API_BASE = (
   window.APP_CONFIG && window.APP_CONFIG.API_BASE
     ? String(window.APP_CONFIG.API_BASE)
     : ""
 ).replace(/\/+$/, "");
 
+const FIREBASE_DB_URL = (
+  window.APP_CONFIG && window.APP_CONFIG.FIREBASE_DB_URL
+    ? String(window.APP_CONFIG.FIREBASE_DB_URL)
+    : ""
+).replace(/\/+$/, "");
+
+const USE_FIREBASE_DIRECT = Boolean(FIREBASE_DB_URL);
+
 function apiUrl(path) {
   return API_BASE ? `${API_BASE}${path}` : path;
+}
+
+function firebaseBirthdaysUrl(id = "") {
+  return id
+    ? `${FIREBASE_DB_URL}/birthdays/${encodeURIComponent(id)}.json`
+    : `${FIREBASE_DB_URL}/birthdays.json`;
 }
 
 function setStatus(message, isError = false) {
@@ -77,7 +92,24 @@ function parseUnknownYearDate(value) {
 }
 
 async function loadBirthdays() {
+  if (USE_FIREBASE_DIRECT) {
+    const response = await fetch(firebaseBirthdaysUrl());
+    if (!response.ok) {
+      throw new Error(`Firebase error: ${response.status}`);
+    }
+    const raw = await response.json();
+    const items = raw ? Object.values(raw) : [];
+    items.sort((a, b) =>
+      String(a.createdAt || "").localeCompare(String(b.createdAt || ""))
+    );
+    renderBirthdays(items);
+    return;
+  }
+
   const response = await fetch(apiUrl("/api/birthdays"));
+  if (!response.ok) {
+    throw new Error(`Backend error: ${response.status}`);
+  }
   const items = await response.json();
   renderBirthdays(items);
 }
@@ -118,14 +150,14 @@ form.addEventListener("submit", async (event) => {
 
   if (window.location.protocol === "file:") {
     setStatus(
-      "Откройте страницу через http://localhost:3000, а не как file://.",
+      "Откройте страницу через http(s), а не как file://.",
       true
     );
     return;
   }
-  if (window.location.hostname.endsWith("github.io") && !API_BASE) {
+  if (!USE_FIREBASE_DIRECT && window.location.hostname.endsWith("github.io") && !API_BASE) {
     setStatus(
-      "Для GitHub Pages укажите backend URL в config.js (APP_CONFIG.API_BASE).",
+      "Укажите APP_CONFIG.FIREBASE_DB_URL или APP_CONFIG.API_BASE в config.js.",
       true
     );
     return;
@@ -136,18 +168,39 @@ form.addEventListener("submit", async (event) => {
   addBtn.textContent = "Сохраняю...";
 
   try {
-    const response = await fetch(apiUrl("/api/birthdays"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    let payload;
+
+    if (USE_FIREBASE_DIRECT) {
+      const entry = {
+        id: Date.now().toString(),
         name,
         date,
-      }),
-    });
+        createdAt: new Date().toISOString(),
+      };
 
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.error || "Ошибка при добавлении");
+      const writeResponse = await fetch(firebaseBirthdaysUrl(entry.id), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      });
+      if (!writeResponse.ok) {
+        throw new Error(`Firebase write error: ${writeResponse.status}`);
+      }
+      payload = entry;
+    } else {
+      const response = await fetch(apiUrl("/api/birthdays"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          date,
+        }),
+      });
+
+      payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || "Ошибка при добавлении");
+      }
     }
 
     setStatus(payload.message || `Добавлено: ${payload.name} (${payload.date})`);
@@ -164,6 +217,13 @@ form.addEventListener("submit", async (event) => {
 });
 
 loadBirthdays().catch(() => {
+  if (USE_FIREBASE_DIRECT) {
+    setStatus(
+      "Firebase недоступен. Проверь FIREBASE_DB_URL и правила доступа в RTDB.",
+      true
+    );
+    return;
+  }
   if (window.location.hostname.endsWith("github.io") && !API_BASE) {
     setStatus("Backend не настроен. Укажите APP_CONFIG.API_BASE в config.js.", true);
     return;
@@ -180,4 +240,4 @@ loadBirthdays().catch(() => {
 
 setInterval(() => {
   loadBirthdays().catch(() => {});
-}, 15000);
+}, 5000);
