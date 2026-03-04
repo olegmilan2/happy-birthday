@@ -29,7 +29,32 @@ cp .env.example .env
 
 ## 4) Запуск
 
-Добавить день рождения:
+Запустить web-приложение:
+
+```bash
+npm start
+```
+
+Откройте `http://localhost:3000` и добавляйте через форму.
+
+## GitHub Pages + backend
+
+Чтобы страница на GitHub Pages (`https://olegmilan2.github.io/happy-birthday/`) работала:
+
+1. Разверните backend отдельно (например Render/Railway/Fly) с командой запуска `npm start`.
+2. В корне репозитория в файле `config.js` заполните:
+
+```js
+window.APP_CONFIG = {
+  API_BASE: "https://your-backend-domain.com",
+};
+```
+
+3. Запушьте изменения в GitHub Pages.
+
+После этого кнопка "Добавить" на GitHub Pages будет отправлять запросы в ваш backend.
+
+CLI-режим (опционально), добавить день рождения:
 
 ```bash
 npm run add -- "Иван" 1995-05-12
@@ -44,11 +69,12 @@ npm run list
 Запуск сервиса уведомлений:
 
 ```bash
-npm start
+npm run worker
 ```
 
 ## Переменные окружения
 
+- `PORT` - порт web-сервера (по умолчанию `3000`).
 - `TIMEZONE` - временная зона (по умолчанию `Europe/Moscow`).
 - `NOTIFY_CRON` - расписание ежедневной проверки (по умолчанию `0 9 * * *`).
 - `TELEGRAM_BOT_TOKEN` - токен Telegram-бота.

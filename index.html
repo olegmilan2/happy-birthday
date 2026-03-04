@@ -76,6 +76,22 @@
         font-size: 0.95rem;
         color: var(--muted);
       }
+
+      .status {
+        margin: 0 0 14px;
+        min-height: 22px;
+        color: #2f6b24;
+        font-weight: 600;
+      }
+
+      .status.error {
+        color: #9f2a2a;
+      }
+
+      ul {
+        margin: 14px 0 0;
+        padding-left: 18px;
+      }
     </style>
   </head>
   <body>
@@ -86,16 +102,132 @@
         календаре (50 лет) и отправит напоминание в Telegram.
       </p>
 
-      <form>
-        <input type="text" placeholder="Имя" />
-        <input type="date" />
-        <button type="button">Добавить</button>
+      <form id="birthdayForm" novalidate>
+        <input id="nameInput" type="text" placeholder="Имя" />
+        <input id="dateInput" type="date" />
+        <button id="addBtn" type="submit">Добавить</button>
       </form>
 
-      <div class="note">
-        Эта страница — UI-заготовка. Логика добавления уже реализована через
-        Node CLI и может быть подключена к API.
-      </div>
+      <div id="status" class="status"></div>
+      <div class="note">Список сохраненных дней рождения:</div>
+      <ul id="birthdayList"></ul>
     </main>
+
+    <script src="./config.js"></script>
+    <script>
+      const form = document.getElementById("birthdayForm");
+      const nameInput = document.getElementById("nameInput");
+      const dateInput = document.getElementById("dateInput");
+      const addBtn = document.getElementById("addBtn");
+      const statusNode = document.getElementById("status");
+      const listNode = document.getElementById("birthdayList");
+      const API_BASE =
+        (window.APP_CONFIG && window.APP_CONFIG.API_BASE
+          ? String(window.APP_CONFIG.API_BASE)
+          : ""
+        ).replace(/\/+$/, "");
+
+      function apiUrl(path) {
+        return API_BASE ? `${API_BASE}${path}` : path;
+      }
+
+      function setStatus(message, isError = false) {
+        statusNode.textContent = message;
+        statusNode.classList.toggle("error", isError);
+      }
+
+      function renderBirthdays(items) {
+        listNode.innerHTML = "";
+        if (!items.length) {
+          const li = document.createElement("li");
+          li.textContent = "Пока пусто";
+          listNode.appendChild(li);
+          return;
+        }
+        items.forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = `${item.name} — ${item.date}`;
+          listNode.appendChild(li);
+        });
+      }
+
+      async function loadBirthdays() {
+        const response = await fetch(apiUrl("/api/birthdays"));
+        const items = await response.json();
+        renderBirthdays(items);
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setStatus("");
+
+        const name = nameInput.value.trim();
+        const date = dateInput.value;
+        if (!name || !date) {
+          setStatus("Заполните имя и дату.", true);
+          return;
+        }
+
+        if (window.location.protocol === "file:") {
+          setStatus(
+            "Откройте страницу через http://localhost:3000, а не как file://.",
+            true
+          );
+          return;
+        }
+        if (
+          window.location.hostname.endsWith("github.io") &&
+          !API_BASE
+        ) {
+          setStatus(
+            "Для GitHub Pages укажите backend URL в config.js (APP_CONFIG.API_BASE).",
+            true
+          );
+          return;
+        }
+
+        addBtn.disabled = true;
+        const originalText = addBtn.textContent;
+        addBtn.textContent = "Сохраняю...";
+
+        try {
+          const response = await fetch(apiUrl("/api/birthdays"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name,
+              date,
+            }),
+          });
+
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.error || "Ошибка при добавлении");
+          }
+
+          setStatus(
+            payload.message || `Добавлено: ${payload.name} (${payload.date})`
+          );
+          form.reset();
+          await loadBirthdays();
+        } catch (error) {
+          setStatus(`Ошибка сети: ${error.message}`, true);
+        } finally {
+          addBtn.disabled = false;
+          addBtn.textContent = originalText;
+        }
+      });
+
+      loadBirthdays().catch(() => {
+        if (window.location.hostname.endsWith("github.io")) {
+          setStatus(
+            "Backend не настроен. Укажите APP_CONFIG.API_BASE в config.js.",
+            true
+          );
+          return;
+        }
+        setStatus("Сервер недоступен. Запустите `npm start`.", true);
+      });
+    </script>
   </body>
 </html>

@@ -1,6 +1,6 @@
-const { addBirthday, loadBirthdays } = require("./storage");
-const { createBirthdayEvent } = require("./calendar");
+const { loadBirthdays } = require("./storage");
 const { checkAndNotify, startScheduler } = require("./scheduler");
+const { createAndStoreBirthday, validateDate } = require("./birthday-service");
 
 function printUsage() {
   console.log(`
@@ -11,28 +11,22 @@ Usage:
 `);
 }
 
-function validateDate(isoDate) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(isoDate);
-}
-
 async function handleAdd(name, date) {
   if (!name || !date || !validateDate(date)) {
     printUsage();
     process.exit(1);
   }
 
-  const event = await createBirthdayEvent(name, date);
-  const entry = {
-    id: Date.now().toString(),
-    name,
-    date,
-    calendarEventId: event.id,
-    createdAt: new Date().toISOString(),
-  };
-  addBirthday(entry);
+  const { event, calendarEnabled } = await createAndStoreBirthday(name, date);
 
   console.log(`Добавлено: ${name} (${date})`);
-  console.log(`Событие в Google Calendar: ${event.htmlLink || event.id}`);
+  if (calendarEnabled && event) {
+    console.log(`Событие в Google Calendar: ${event.htmlLink || event.id}`);
+  } else {
+    console.log(
+      "Google Calendar не настроен: запись сохранена локально без события."
+    );
+  }
 }
 
 function handleList() {

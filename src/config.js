@@ -2,6 +2,7 @@ const path = require("path");
 require("dotenv").config();
 
 module.exports = {
+  port: Number(process.env.PORT || 3000),
   timezone: process.env.TIMEZONE || "Europe/Moscow",
   notifyCron: process.env.NOTIFY_CRON || "0 9 * * *",
   telegramToken: process.env.TELEGRAM_BOT_TOKEN,
