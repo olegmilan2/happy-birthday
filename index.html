@@ -105,6 +105,18 @@
       <form id="birthdayForm" novalidate>
         <input id="nameInput" type="text" placeholder="Имя" />
         <input id="dateInput" type="date" />
+        <label class="note" for="unknownYear">
+          <input id="unknownYear" type="checkbox" />
+          Год рождения не знаю
+        </label>
+        <input
+          id="monthDayInput"
+          type="text"
+          placeholder="ДД.ММ (например 02.04)"
+          inputmode="numeric"
+          maxlength="5"
+          style="display: none"
+        />
         <button id="addBtn" type="submit">Добавить</button>
       </form>
 
@@ -121,6 +133,8 @@
       const addBtn = document.getElementById("addBtn");
       const statusNode = document.getElementById("status");
       const listNode = document.getElementById("birthdayList");
+      const unknownYearCheckbox = document.getElementById("unknownYear");
+      const monthDayInput = document.getElementById("monthDayInput");
       const API_BASE =
         (window.APP_CONFIG && window.APP_CONFIG.API_BASE
           ? String(window.APP_CONFIG.API_BASE)
@@ -146,9 +160,39 @@
         }
         items.forEach((item) => {
           const li = document.createElement("li");
-          li.textContent = `${item.name} — ${item.date}`;
+          li.textContent = `${item.name} — ${formatDateForUi(item.date)}`;
           listNode.appendChild(li);
         });
+      }
+
+      function formatDateForUi(value) {
+        const parts = String(value || "").split("-");
+        if (parts.length === 2) {
+          return `${parts[1]}.${parts[0]}`;
+        }
+        if (parts.length === 3) {
+          return `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
+        return String(value || "");
+      }
+
+      function parseUnknownYearDate(value) {
+        const match = /^(\d{2})\.(\d{2})$/.exec(value.trim());
+        if (!match) {
+          return null;
+        }
+        const day = Number(match[1]);
+        const month = Number(match[2]);
+        const candidate = new Date(Date.UTC(2000, month - 1, day));
+        const valid =
+          candidate.getUTCFullYear() === 2000 &&
+          candidate.getUTCMonth() === month - 1 &&
+          candidate.getUTCDate() === day;
+
+        if (!valid) {
+          return null;
+        }
+        return `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       }
 
       async function loadBirthdays() {
@@ -157,14 +201,37 @@
         renderBirthdays(items);
       }
 
+      unknownYearCheckbox.addEventListener("change", () => {
+        const unknownYear = unknownYearCheckbox.checked;
+        dateInput.style.display = unknownYear ? "none" : "block";
+        monthDayInput.style.display = unknownYear ? "block" : "none";
+      });
+
+      monthDayInput.addEventListener("input", () => {
+        const digits = monthDayInput.value.replace(/\D/g, "").slice(0, 4);
+        if (digits.length <= 2) {
+          monthDayInput.value = digits;
+          return;
+        }
+        monthDayInput.value = `${digits.slice(0, 2)}.${digits.slice(2)}`;
+      });
+
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         setStatus("");
 
         const name = nameInput.value.trim();
-        const date = dateInput.value;
+        const unknownYear = unknownYearCheckbox.checked;
+        const unknownYearDate = unknownYear
+          ? parseUnknownYearDate(monthDayInput.value)
+          : null;
+        const date = unknownYear ? unknownYearDate : dateInput.value;
         if (!name || !date) {
           setStatus("Заполните имя и дату.", true);
+          return;
+        }
+        if (unknownYear && !unknownYearDate) {
+          setStatus("Для даты без года используйте формат ДД.ММ, например 02.04.", true);
           return;
         }
 
@@ -209,6 +276,8 @@
             payload.message || `Добавлено: ${payload.name} (${payload.date})`
           );
           form.reset();
+          dateInput.style.display = "block";
+          monthDayInput.style.display = "none";
           await loadBirthdays();
         } catch (error) {
           setStatus(`Ошибка сети: ${error.message}`, true);

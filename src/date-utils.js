@@ -3,8 +3,17 @@ function isLeapYear(year) {
 }
 
 function extractMonthDay(isoDate) {
-  const [, month, day] = isoDate.split("-");
-  return { month: Number(month), day: Number(day) };
+  const parts = String(isoDate).split("-");
+
+  if (parts.length === 3) {
+    return { month: Number(parts[1]), day: Number(parts[2]) };
+  }
+
+  if (parts.length === 2) {
+    return { month: Number(parts[0]), day: Number(parts[1]) };
+  }
+
+  return { month: NaN, day: NaN };
 }
 
 function matchesBirthdayOnDate(birthdayIsoDate, targetDate) {

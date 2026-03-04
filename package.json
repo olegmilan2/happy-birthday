@@ -7,7 +7,9 @@
     "start": "node src/server.js",
     "worker": "node src/index.js run",
     "add": "node src/index.js add",
-    "list": "node src/index.js list"
+    "list": "node src/index.js list",
+    "telegram:chat-id": "node src/index.js telegram:chat-id",
+    "telegram:test": "node src/index.js telegram:test"
   },
   "private": true,
   "dependencies": {

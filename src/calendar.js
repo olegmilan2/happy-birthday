@@ -46,9 +46,16 @@ function getCalendarClient() {
 }
 
 function createRecurringEventPayload(name, birthdayIsoDate) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthdayIsoDate);
+  let normalizedDate = birthdayIsoDate;
+  const monthDayMatch = /^(\d{2})-(\d{2})$/.exec(birthdayIsoDate);
+  if (monthDayMatch) {
+    const currentYear = new Date().getFullYear();
+    normalizedDate = `${currentYear}-${monthDayMatch[1]}-${monthDayMatch[2]}`;
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalizedDate);
   if (!match) {
-    throw new Error("Дата должна быть в формате YYYY-MM-DD.");
+    throw new Error("Дата должна быть в формате YYYY-MM-DD или MM-DD.");
   }
 
   const year = Number(match[1]);
@@ -102,7 +109,7 @@ async function createBirthdayEvent(name, birthdayIsoDate) {
 
     if (String(apiMessage).includes("expected pattern")) {
       throw new Error(
-        "Google Calendar отклонил значение. Проверьте GOOGLE_CALENDAR_ID (обычно `primary`) и дату в формате YYYY-MM-DD."
+        "Google Calendar отклонил значение. Проверьте GOOGLE_CALENDAR_ID (обычно `primary`) и дату в формате YYYY-MM-DD или MM-DD."
       );
     }
 
