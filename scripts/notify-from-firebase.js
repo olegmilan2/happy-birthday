@@ -39,6 +39,7 @@ async function main() {
   const telegramToken = requireEnv("TELEGRAM_BOT_TOKEN");
   const telegramChatId = requireEnv("TELEGRAM_CHAT_ID");
   const firebaseDatabaseUrl = requireEnv("FIREBASE_DATABASE_URL");
+  const forceTest = String(process.env.FORCE_TEST || "").toLowerCase() === "true";
 
   const now = new Date();
   const tomorrow = addDays(now, 1);
@@ -65,6 +66,15 @@ async function main() {
   }
 
   if (messages.length === 0) {
+    if (forceTest) {
+      await sendTelegramMessage(
+        telegramToken,
+        telegramChatId,
+        `Тест: workflow запущен, дат на сегодня/завтра нет (${toHumanDate(now)}).`
+      );
+      console.log("Sent test message (force mode).");
+      return;
+    }
     console.log("No birthday notifications for today.");
     return;
   }
