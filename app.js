@@ -21,6 +21,8 @@ const FIREBASE_DB_URL = (
 ).replace(/\/+$/, "");
 
 const USE_FIREBASE_DIRECT = Boolean(FIREBASE_DB_URL);
+const CACHE_KEY = "hb_birthdays_cache_v1";
+const OUTBOX_KEY = "hb_birthdays_outbox_v1";
 
 function apiUrl(path) {
   return API_BASE ? `${API_BASE}${path}` : path;
@@ -30,6 +32,102 @@ function firebaseBirthdaysUrl(id = "") {
   return id
     ? `${FIREBASE_DB_URL}/birthdays/${encodeURIComponent(id)}.json`
     : `${FIREBASE_DB_URL}/birthdays.json`;
+}
+
+function readJsonStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) {
+      return fallback;
+    }
+    return JSON.parse(raw);
+  } catch (_error) {
+    return fallback;
+  }
+}
+
+function writeJsonStorage(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function getLocalCache() {
+  return readJsonStorage(CACHE_KEY, []);
+}
+
+function setLocalCache(items) {
+  writeJsonStorage(CACHE_KEY, items);
+}
+
+function upsertLocalCacheItem(item) {
+  const list = getLocalCache();
+  const index = list.findIndex((entry) => String(entry.id) === String(item.id));
+  if (index >= 0) {
+    list[index] = { ...list[index], ...item };
+  } else {
+    list.push(item);
+  }
+  list.sort((a, b) =>
+    String(a.createdAt || "").localeCompare(String(b.createdAt || ""))
+  );
+  setLocalCache(list);
+}
+
+function removeLocalCacheItem(id) {
+  const next = getLocalCache().filter((item) => String(item.id) !== String(id));
+  setLocalCache(next);
+}
+
+function getOutbox() {
+  return readJsonStorage(OUTBOX_KEY, []);
+}
+
+function setOutbox(items) {
+  writeJsonStorage(OUTBOX_KEY, items);
+}
+
+function pushOutbox(op) {
+  const outbox = getOutbox();
+  outbox.push(op);
+  setOutbox(outbox);
+}
+
+async function syncOutbox() {
+  if (!USE_FIREBASE_DIRECT || !navigator.onLine) {
+    return false;
+  }
+
+  const outbox = getOutbox();
+  if (!outbox.length) {
+    return true;
+  }
+
+  const remaining = [];
+  for (const op of outbox) {
+    try {
+      if (op.type === "upsert" && op.item?.id) {
+        const response = await fetch(firebaseBirthdaysUrl(op.item.id), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(op.item),
+        });
+        if (!response.ok) {
+          throw new Error(String(response.status));
+        }
+      } else if (op.type === "delete" && op.id) {
+        const response = await fetch(firebaseBirthdaysUrl(op.id), {
+          method: "DELETE",
+        });
+        if (!response.ok) {
+          throw new Error(String(response.status));
+        }
+      }
+    } catch (_error) {
+      remaining.push(op);
+    }
+  }
+
+  setOutbox(remaining);
+  return remaining.length === 0;
 }
 
 function setStatus(message, isError = false, showSuccessIcon = false) {
@@ -144,22 +242,37 @@ async function deleteBirthday(id) {
 
 async function loadBirthdays() {
   if (USE_FIREBASE_DIRECT) {
-    const response = await fetch(firebaseBirthdaysUrl());
-    if (!response.ok) {
-      throw new Error(`Firebase error: ${response.status}`);
+    await syncOutbox();
+  }
+
+  if (USE_FIREBASE_DIRECT) {
+    try {
+      const response = await fetch(firebaseBirthdaysUrl());
+      if (!response.ok) {
+        throw new Error(`Firebase error: ${response.status}`);
+      }
+      const raw = await response.json();
+      const items = raw
+        ? Object.entries(raw).map(([id, value]) => ({
+            id: value && value.id ? value.id : id,
+            ...value,
+          }))
+        : [];
+      items.sort((a, b) =>
+        String(a.createdAt || "").localeCompare(String(b.createdAt || ""))
+      );
+      setLocalCache(items);
+      renderBirthdays(items);
+      return;
+    } catch (_error) {
+      const cachedItems = getLocalCache();
+      renderBirthdays(cachedItems);
+      setStatus(
+        "Оффлайн режим: показываю локальные данные. При появлении сети синхронизирую.",
+        true
+      );
+      return;
     }
-    const raw = await response.json();
-    const items = raw
-      ? Object.entries(raw).map(([id, value]) => ({
-          id: value && value.id ? value.id : id,
-          ...value,
-        }))
-      : [];
-    items.sort((a, b) =>
-      String(a.createdAt || "").localeCompare(String(b.createdAt || ""))
-    );
-    renderBirthdays(items);
-    return;
   }
 
   const response = await fetch(apiUrl("/api/birthdays"));
@@ -242,6 +355,7 @@ form.addEventListener("submit", async (event) => {
       if (!writeResponse.ok) {
         throw new Error(`Firebase write error: ${writeResponse.status}`);
       }
+      upsertLocalCacheItem(entry);
       payload = entry;
     } else {
       const response = await fetch(apiUrl("/api/birthdays"), {
@@ -269,7 +383,23 @@ form.addEventListener("submit", async (event) => {
     monthDayInput.style.display = "none";
     renderBirthdayItem(payload, true);
   } catch (error) {
-    setStatus(`Ошибка сети: ${error.message}`, true);
+    if (USE_FIREBASE_DIRECT) {
+      const offlineEntry = {
+        id: Date.now().toString(),
+        name,
+        date,
+        createdAt: new Date().toISOString(),
+      };
+      upsertLocalCacheItem(offlineEntry);
+      pushOutbox({ type: "upsert", item: offlineEntry });
+      renderBirthdayItem(offlineEntry, true);
+      form.reset();
+      dateInput.style.display = "block";
+      monthDayInput.style.display = "none";
+      setStatus("Сохранено офлайн. При подключении к сети отправлю в Firebase.");
+    } else {
+      setStatus(`Ошибка сети: ${error.message}`, true);
+    }
   } finally {
     addBtn.disabled = false;
     addBtn.textContent = originalText;
@@ -293,12 +423,20 @@ listNode.addEventListener("click", async (event) => {
 
   try {
     await deleteBirthday(id);
+    removeLocalCacheItem(id);
     await loadBirthdays();
     setStatus("Запись удалена.");
   } catch (error) {
-    setStatus(`Ошибка удаления: ${error.message}`, true);
-    button.disabled = false;
-    button.textContent = originalText;
+    if (USE_FIREBASE_DIRECT) {
+      removeLocalCacheItem(id);
+      pushOutbox({ type: "delete", id: String(id) });
+      await loadBirthdays();
+      setStatus("Удалено офлайн. При подключении к сети синхронизирую.");
+    } else {
+      setStatus(`Ошибка удаления: ${error.message}`, true);
+      button.disabled = false;
+      button.textContent = originalText;
+    }
   }
 });
 
@@ -335,3 +473,9 @@ if ("serviceWorker" in navigator) {
       .catch(() => {});
   });
 }
+
+window.addEventListener("online", () => {
+  syncOutbox()
+    .then(() => loadBirthdays())
+    .catch(() => {});
+});
