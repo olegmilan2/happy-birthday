@@ -25,7 +25,9 @@ jobs:
       - name: Prepare static files
         run: |
           mkdir -p dist
-          cp index.html config.js app.js dist/
+          cp index.html config.js app.js manifest.webmanifest service-worker.js dist/
+          mkdir -p dist/icons
+          cp -R icons/* dist/icons/
           touch dist/.nojekyll
 
       - name: Upload artifact

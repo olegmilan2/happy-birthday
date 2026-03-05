@@ -327,3 +327,11 @@ loadBirthdays().catch(() => {
 setInterval(() => {
   loadBirthdays().catch(() => {});
 }, 5000);
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("./service-worker.js")
+      .catch(() => {});
+  });
+}
